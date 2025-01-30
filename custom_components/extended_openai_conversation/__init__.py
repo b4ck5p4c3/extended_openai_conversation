@@ -1,4 +1,5 @@
 """The OpenAI Conversation integration."""
+
 from __future__ import annotations
 
 import json
@@ -173,9 +174,7 @@ class OpenAIAgent(conversation.AbstractConversationAgent):
             conversation_id = ulid.ulid()
             user_input.conversation_id = conversation_id
             try:
-                system_message = self._generate_system_message(
-                    exposed_entities, user_input
-                )
+                system_message = self._generate_system_message(exposed_entities, user_input)
             except TemplateError as err:
                 _LOGGER.error("Error rendering prompt: %s", err)
                 intent_response = intent.IntentResponse(language=user_input.language)
@@ -291,12 +290,8 @@ class OpenAIAgent(conversation.AbstractConversationAgent):
             result = yaml.safe_load(function) if function else DEFAULT_CONF_FUNCTIONS
             if result:
                 for setting in result:
-                    function_executor = get_function_executor(
-                        setting["function"]["type"]
-                    )
-                    setting["function"] = function_executor.to_arguments(
-                        setting["function"]
-                    )
+                    function_executor = get_function_executor(setting["function"]["type"])
+                    setting["function"] = function_executor.to_arguments(setting["function"])
             return result
         except (InvalidFunction, FunctionNotFound) as e:
             raise e
@@ -321,9 +316,7 @@ class OpenAIAgent(conversation.AbstractConversationAgent):
             if last_user_message_index is not None:
                 del messages[1:last_user_message_index]
                 # refresh system prompt when all messages are deleted
-                messages[0] = self._generate_system_message(
-                    exposed_entities, user_input
-                )
+                messages[0] = self._generate_system_message(exposed_entities, user_input)
 
     async def query(
         self,
@@ -342,7 +335,12 @@ class OpenAIAgent(conversation.AbstractConversationAgent):
             CONF_CONTEXT_THRESHOLD, DEFAULT_CONTEXT_THRESHOLD
         )
         functions = list(map(lambda s: s["spec"], self.get_functions()))
-        function_call = "auto"
+        function_call = {
+            "function_calling_config": {
+                "mode": "ANY",
+            }
+        }
+
         if n_requests == self.entry.options.get(
             CONF_MAX_FUNCTION_CALLS_PER_CONVERSATION,
             DEFAULT_MAX_FUNCTION_CALLS_PER_CONVERSATION,
@@ -352,8 +350,8 @@ class OpenAIAgent(conversation.AbstractConversationAgent):
         tool_kwargs = {"functions": functions, "function_call": function_call}
         if use_tools:
             tool_kwargs = {
-                "tools": [{"type": "function", "function": func} for func in functions],
-                "tool_choice": function_call,
+                "tools": [{"function_declarations": [func]} for func in functions],
+                "tool_config": function_call,
             }
 
         if len(functions) == 0:
@@ -366,7 +364,7 @@ class OpenAIAgent(conversation.AbstractConversationAgent):
             max_tokens,
             top_p,
             temperature,
-            user_input.conversation_id
+            user_input.conversation_id,
         )
         response: ChatCompletion = await self.client.chat.completions.create(
             model=model,
@@ -515,9 +513,7 @@ class OpenAIAgent(conversation.AbstractConversationAgent):
 class OpenAIQueryResponse:
     """OpenAI query response value object."""
 
-    def __init__(
-        self, response: ChatCompletion, message: ChatCompletionMessage
-    ) -> None:
+    def __init__(self, response: ChatCompletion, message: ChatCompletionMessage) -> None:
         """Initialize OpenAI query response value object."""
         self.response = response
         self.message = message
