@@ -349,7 +349,9 @@ class OpenAIAgent(conversation.AbstractConversationAgent):
         ):
             function_call = "none"
 
-        tool_kwargs = {"functions": functions, "function_call": function_call}
+        if functions:
+            tool_kwargs["tools"] = [{"type": "function", "function": f} for f in functions]
+            tool_kwargs["tool_choice"] = "auto" if function_call == "auto" else None
         if use_tools:
             tool_kwargs = {
                 "tools": [{"type": "function", "function": func} for func in functions],
@@ -359,8 +361,15 @@ class OpenAIAgent(conversation.AbstractConversationAgent):
         if len(functions) == 0:
             tool_kwargs = {}
         _LOGGER.info(f"tool_kwargs: {tool_kwargs}")
-        _LOGGER.info("Prompt for %s: %s", model, json.dumps(messages), max_tokens, top_p, temperature, user_input.conversation_id)
-
+        _LOGGER.info(
+            "Prompt for %s: %s. Params: max_tokens=%s, top_p=%s, temp=%s, conv_id=%s",
+            model,
+            json.dumps(messages),
+            max_tokens,
+            top_p,
+            temperature,
+            user_input.conversation_id
+        )
         response: ChatCompletion = await self.client.chat.completions.create(
             model=model,
             messages=messages,
@@ -370,6 +379,11 @@ class OpenAIAgent(conversation.AbstractConversationAgent):
             user=user_input.conversation_id,
             **tool_kwargs,
         )
+        if not response:
+            raise OpenAIError("Empty response from API")
+
+        if response.choices[0].finish_reason == "content_filter":
+            raise OpenAIError("Content filtered")
 
         _LOGGER.info("Response %s", json.dumps(response.model_dump(exclude_none=True)))
 
