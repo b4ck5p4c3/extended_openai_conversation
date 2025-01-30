@@ -349,9 +349,7 @@ class OpenAIAgent(conversation.AbstractConversationAgent):
         ):
             function_call = "none"
 
-        if functions:
-            tool_kwargs["tools"] = [{"type": "function", "function": f} for f in functions]
-            tool_kwargs["tool_choice"] = "auto" if function_call == "auto" else None
+        tool_kwargs = {"functions": functions, "function_call": function_call}
         if use_tools:
             tool_kwargs = {
                 "tools": [{"type": "function", "function": func} for func in functions],
