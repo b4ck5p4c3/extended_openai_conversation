@@ -353,10 +353,10 @@ class OpenAIAgent(conversation.AbstractConversationAgent):
                 "tools": [{"function_declarations": [func]} for func in functions],
                 "tool_config": function_call,
             }
+        _LOGGER.info(f"tool_kwargs: {json.dumps(tool_kwargs)}")
 
         if len(functions) == 0:
             tool_kwargs = {}
-        _LOGGER.info(f"tool_kwargs: {tool_kwargs}")
         _LOGGER.info(
             "Prompt for %s: %s. Params: max_tokens=%s, top_p=%s, temp=%s, conv_id=%s",
             model,
