@@ -358,8 +358,8 @@ class OpenAIAgent(conversation.AbstractConversationAgent):
 
         if len(functions) == 0:
             tool_kwargs = {}
-
-        _LOGGER.info("Prompt for %s: %s", model, json.dumps(messages))
+        _LOGGER.info(f"tool_kwargs: {tool_kwargs}")
+        _LOGGER.info("Prompt for %s: %s", model, json.dumps(messages), max_tokens, top_p, temperature, user_input.conversation_id)
 
         response: ChatCompletion = await self.client.chat.completions.create(
             model=model,
