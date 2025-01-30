@@ -380,8 +380,8 @@ class OpenAIAgent(conversation.AbstractConversationAgent):
         if not response:
             raise OpenAIError("Empty response from API")
 
-        if response.choices[0].finish_reason == "content_filter":
-            raise OpenAIError("Content filtered")
+        # if response.choices[0].finish_reason == "content_filter":
+        #     raise OpenAIError("Content filtered")
 
         _LOGGER.info("Response %s", json.dumps(response.model_dump(exclude_none=True)))
 
